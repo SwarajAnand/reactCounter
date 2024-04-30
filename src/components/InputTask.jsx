@@ -1,48 +1,71 @@
 import { useEffect, useState } from "react";
+import { v4 as uuidv4 } from "uuid";
 import ShowData from "./ShowData";
 
 const InputTask = () => {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState(
+    JSON.parse(localStorage.getItem("users")) || []
+  );
   const [value, setValue] = useState("");
   const [hour, setHour] = useState("");
 
   useEffect(() => {
-    const userData = JSON.parse(localStorage.getItem("users")) || [];
-    setData(userData);
-  }, []);
+    updateLocalData();
+  }, [data]);
+
+  const updateLocalData = () => {
+    localStorage.setItem("users", JSON.stringify(data));
+  };
 
   const handleSubmit = () => {
     if (!value || !hour) return;
-    setData([...data, { name: value, hour: parseInt(hour) }]);
-
-    localStorage.setItem(
-      "users",
-      JSON.stringify([...data, { name: value, hour: parseInt(hour) }])
-    );
+    let id = uuidv4();
+    setData([...data, { id, name: value, hour: parseInt(hour) }]);
     setValue("");
     setHour("");
   };
 
   const handleIncrement = (index) => {
     const updatedData = [...data];
-    updatedData[index].hour += 1;
+    updatedData.map((ele) => {
+      ele.id === index && (ele.hour += 1);
+    });
     setData(updatedData);
   };
 
   const handleDecrement = (index) => {
-    // console.log(index);
     const updatedData = [...data];
-    if (updatedData[index].hour === 0) return;
-    updatedData[index].hour -= 1;
+    updatedData.map((ele) => {
+      ele.id === index && (ele.hour === 0 ? ele.hour : (ele.hour -= 1));
+    });
     setData(updatedData);
   };
 
-  console.log("render");
+  const handleEdit = (index) => {
+    if (value || hour) {
+      return;
+    }
+    const updatedData = [...data];
+    let editData = updatedData.find((ele) => {
+      return ele.id === index;
+    });
+
+    setValue(editData.name);
+    setHour(editData.hour);
+
+    setData(updatedData);
+    handleDelete(index);
+  };
 
   const handleDelete = (index) => {
     const updatedData = [...data];
-    updatedData.splice(index, 1);
-    setData(updatedData);
+    console.log(index);
+
+    const filterData = updatedData.filter((ele) => {
+      return ele.id !== index;
+    });
+    console.log(filterData);
+    setData(filterData);
   };
 
   return (
@@ -72,15 +95,16 @@ const InputTask = () => {
         ADD
       </button>
       <div className="d w-1/2 m-auto">
-        {data.map((item, idx) => {
+        {data.map((item) => {
           return (
             <ShowData
               name={item.name}
               hour={item.hour}
-              onIncrement={() => handleIncrement(idx)}
-              onDecrement={() => handleDecrement(idx)}
-              onDelete={() => handleDelete(idx)}
-              key={idx}
+              onIncrement={() => handleIncrement(item.id)}
+              onDecrement={() => handleDecrement(item.id)}
+              onDelete={() => handleDelete(item.id)}
+              onEdit={() => handleEdit(item.id)}
+              key={item.id}
             />
           );
         })}
